@@ -58,5 +58,75 @@ ln -sf /usr/share/zoneinfo/Asia/Dhaka /etc/localtime
 hwclock --systohc
 
 # Localization
+vim /etc/locale.gen
+locale-gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+# Name of your installation (i.e. hostname, aka "Computer Name")
+read -p "What would you like to call your installation (hostname)? cname
+echo $cname > /etc/hostname
+cat > /etc/hosts << EOF
+127.0.0.1	localhost
+::1		localhost
+127.0.1.1	$cname.localdomain	$cname
+EOF
+
+# Start network
+ip link
+read -p "Name of wireless interface: " wl
+ip link set $wl up
+systemctl start NetworkManager.service
+nmtui-connect
+
+# Set a root password
+echo "Enter your root password in the prompt below."
+passwd
+
+### Post Instllation ###
+
+# Adding a user with with sudo rights
+read -p "Enter name of the user (no spaces): " u
+useradd --create-home --groups wheel $u
+echo "New user $u added. In the prompt below enter the password for the new user."
+passwd $u
+
+# Letting users in 'wheel' group sudo usage rights
+# Just uncomment the line wheel = ... ALL ...
+# TODO: maybe use sed to do this?
+visudo
+
+# Installing graphics drivers
+pacman -Sy mesa vulkan-intel intel-media-driver
+
+# Installing the "sway" window manager
+
+pacman -S sway swaylock swayidle gtk3
+
+# Autostart sway on login. Note, no display server is installed to do this.
+
+cat > ~/.bash_profile <<EOF
+if [[ -z $DISPLAY ]] && [[ $(tty) = /dev/tty1 ]]; then
+  XKB_DEFAULT_LAYOUT=us exec sway
+fi
+EOF
+
+# Install pulseaudio
+
+pacman -S pulseaudio
+
+# Install video codecs
+# TODO: move 'ranger' to somewhere more appropriate
+
+pacman -S gst-plugins-ugly mpv ranger
+
+### DONE ###
+
+# Exit from chroot
+exit
+
+# Unmount all mounted partitions
+umount -R /mnt
+
+echo -e "\n\n\nAnd thats it! You can now restart o your new Arch Linux setup."
 
 exit 0
